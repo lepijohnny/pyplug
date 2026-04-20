@@ -1,0 +1,12 @@
+.venv
+.git
+.claude
+__pycache__
+vendor/uv
+vendor/uvx
+node_modules
+frontend/src
+frontend/public
+*.md
+!README.md
+!Skill.md
