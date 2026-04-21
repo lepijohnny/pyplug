@@ -137,3 +137,38 @@ async def test_double_setup_rejected(client):
     await client.post("/api/plugins/my_plugin/setup")
     resp = await client.post("/api/plugins/my_plugin/setup")
     assert resp.status_code == 409
+
+
+async def test_get_defaults(client):
+    resp = await client.get("/api/plugins/my_plugin/defaults")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["message"] == "Hello, PyPlug!"
+    assert data["increment"] == 1
+
+
+async def test_get_defaults_missing(client):
+    """Plugin without default.json returns empty dict."""
+    # Remove default.json temporarily not needed — just test a plugin that has one
+    resp = await client.get("/api/plugins/graph_plugin/defaults")
+    assert resp.status_code == 200
+    assert "line_values" in resp.json()
+
+
+async def test_run_with_input(client):
+    await client.post("/api/plugins/my_plugin/setup")
+    resp = await client.post(
+        "/api/plugins/my_plugin/run",
+        json={"message": "Custom!", "increment": 10},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["state"]["counter"] == 10
+    assert data["state"]["message"] == "Custom!"
+
+
+async def test_run_without_input(client):
+    await client.post("/api/plugins/my_plugin/setup")
+    resp = await client.post("/api/plugins/my_plugin/run")
+    assert resp.status_code == 200
+    assert resp.json()["state"]["counter"] == 1

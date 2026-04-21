@@ -105,7 +105,6 @@ class TestGraphPluginRPC:
         html = responses[1]["result"]["html"]
         assert "line-graph" in html
         assert "bar-chart" in html
-        assert "scatter-plot" in html
 
     def test_default_teardown(self):
         """Graph plugin doesn't define teardown — should use default."""

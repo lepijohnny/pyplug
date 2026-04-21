@@ -13,18 +13,21 @@ class MyPlugin(PluginBase):
         return {"output": "Plugin initialized"}
 
     @on_run
-    def run(self):
-        self.state["counter"] += 1
-        self.log("debug", f"Counter incremented to {self.state['counter']}")
+    def run(self, input=None):
+        input = input or {}
+        increment = input.get("increment", 1)
+        message = input.get("message", self.state["message"])
+        self.state["counter"] += increment
+        self.state["message"] = message
+        self.log("debug", f"Counter incremented by {increment} to {self.state['counter']}")
         return {
-            "output": f"Counter: {self.state['counter']}",
+            "output": f"{message} (counter: {self.state['counter']})",
             "html": """
             <div class="card">
-              <h3 class="text">Plugin Output</h3>
+              <h3 class="text">{message}</h3>
               <p class="text">Counter: {counter}</p>
-              <button class="btn btn-primary">Click Me</button>
             </div>
-            """.format(counter=self.state["counter"]),
+            """.format(message=message, counter=self.state["counter"]),
         }
 
     @on_teardown

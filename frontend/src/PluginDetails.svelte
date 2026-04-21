@@ -3,6 +3,21 @@
   import DOMPurify from 'dompurify';
 
   let { plugin = $bindable(), onaction = () => {} } = $props();
+  let inputJson = $state('{}');
+  let jsonError = $state('');
+
+  $effect(() => {
+    if (plugin) {
+      fetchDefaults();
+    }
+  });
+
+  async function fetchDefaults() {
+    const res = await fetch(`/api/plugins/${plugin.id}/defaults`);
+    const defaults = await res.json();
+    inputJson = JSON.stringify(defaults, null, 2);
+    jsonError = '';
+  }
 
   function renderGraphs() {
     document.querySelectorAll('.line-graph').forEach(el => {
@@ -49,7 +64,18 @@
   }
 
   async function runPlugin() {
-    const res = await fetch(`/api/plugins/${plugin.id}/run`, { method: "POST" });
+    try {
+      JSON.parse(inputJson);
+      jsonError = '';
+    } catch {
+      jsonError = 'Invalid JSON';
+      return;
+    }
+    const res = await fetch(`/api/plugins/${plugin.id}/run`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: inputJson,
+    });
     const { payload, state, html } = await res.json();
     plugin = { ...plugin, state };
     onaction();
@@ -105,6 +131,19 @@
   </div>
 
   <div class="section">
+    <h3 class="section-title">Input</h3>
+    <textarea
+      class="input-editor"
+      bind:value={inputJson}
+      spellcheck="false"
+      disabled={plugin.status !== "setup"}
+    ></textarea>
+    {#if jsonError}
+      <p class="json-error">{jsonError}</p>
+    {/if}
+  </div>
+
+  <div class="section">
     <h3 class="section-title">State</h3>
     <pre class="state-block">{JSON.stringify(plugin.state, null, 2)}</pre>
   </div>
@@ -119,6 +158,10 @@
     margin-bottom: 1rem;
   }
 
+  .section {
+    margin-bottom: 1rem;
+  }
+
   .section-title {
     font-size: 0.8rem;
     font-weight: 600;
@@ -126,6 +169,29 @@
     letter-spacing: 0.05em;
     color: var(--color-muted);
     margin-bottom: 0.5rem;
+  }
+
+  .input-editor {
+    width: 100%;
+    min-height: 100px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-fg);
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    resize: vertical;
+  }
+
+  .input-editor:disabled {
+    opacity: 0.5;
+  }
+
+  .json-error {
+    color: var(--color-error);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
   }
 
   .state-block {

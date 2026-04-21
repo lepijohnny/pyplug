@@ -1,3 +1,4 @@
+import json
 import logging
 import platform
 import sys
@@ -26,7 +27,7 @@ logging.basicConfig(level=logging.DEBUG, handlers=[
     logging.StreamHandler(),
 ])
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 
 from .plugins.loader import discover_plugins
@@ -84,14 +85,27 @@ async def setup_plugin(plugin_id: str):
     return {"payload": result.get("payload", {}), "state": result.get("state", {})}
 
 
+@app.get("/api/plugins/{plugin_id}/defaults")
+async def get_plugin_defaults(plugin_id: str):
+    runner = plugins.get(plugin_id)
+    if not runner:
+        raise HTTPException(404, "Plugin not found")
+    defaults_file = runner.plugin_path / "default.json"
+    if not defaults_file.exists():
+        return {}
+    return json.loads(defaults_file.read_text())
+
+
 @app.post("/api/plugins/{plugin_id}/run")
-async def run_plugin(plugin_id: str):
+async def run_plugin(plugin_id: str, request: Request):
     runner = plugins.get(plugin_id)
     if not runner:
         raise HTTPException(404, "Plugin not found")
     if runner.status != "setup":
         raise HTTPException(409, "Plugin must be in setup state to run")
-    result = await runner.send_rpc("run")
+    body = await request.body()
+    params = json.loads(body) if body else {}
+    result = await runner.send_rpc("run", params)
     runner.state = result.get("state", {})
     return {
         "payload": result.get("payload", {}),

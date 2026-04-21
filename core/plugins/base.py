@@ -52,7 +52,8 @@ class PluginBase:
             return self._error(request, -32601, "Method not found")
 
         try:
-            result = self._rpc_methods[method]()
+            params = request.get("params", {})
+            result = self._rpc_methods[method](params) if params else self._rpc_methods[method]()
             html = result.get("html") if isinstance(result, dict) else None
             return {
                 "jsonrpc": "2.0",
